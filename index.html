@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0D2438">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Vendas">
+<title>Dashboard de Vendas — PROGRESSO</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><rect width='40' height='40' fill='%230D2438'/><text x='20' y='29' font-family='Georgia,serif' font-size='24' font-weight='700' fill='white' text-anchor='middle'>P</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  /* Padrão visual PROGRESSO (mesmo do Módulo Hotelaria) */
+  :root{
+    --navy:#0D2438; --navy2:#173453; --blue:#337DB1; --blue-soft:#e8f0f7;
+    --bg:#eef1f4; --surface:#ffffff; --line:#dfe4ea; --line2:#eef1f4;
+    --txt:#0D2438; --muted:#6b7787; --muted2:#98a2ad; --danger:#c0392b;
+    --maxw:1180px; --padx:20px;
+    --serif:'Cambria','Georgia','Times New Roman',serif;
+    --sans:'Calibri','Segoe UI',system-ui,sans-serif;
+    --mono:'Consolas','Courier New',monospace;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--txt);font-size:15px;
+       min-height:100vh;display:flex;flex-direction:column}
+  .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+  button{font-family:var(--sans);font-size:13px;cursor:pointer;border:1px solid var(--line);border-radius:7px;
+         padding:9px 15px;color:var(--navy);background:var(--surface);letter-spacing:.02em;font-weight:600}
+  button:hover{border-color:var(--blue);color:var(--blue)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+  button.primary:hover{background:var(--navy2);color:#fff}
+  input,select{font-family:var(--sans);font-size:14px;color:var(--txt);background:var(--surface);
+               border:1px solid var(--line);border-radius:7px;padding:8px 10px}
+  input:focus,select:focus{outline:none;border-color:var(--blue)}
+
+  /* ===== LOGIN ===== */
+  .login-bg{position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;padding:16px;z-index:30}
+  .login{background:var(--surface);border-radius:12px;padding:24px;width:min(360px,100%);
+         box-shadow:0 24px 60px rgba(0,0,0,.35);border-top:4px solid var(--blue)}
+  .login h2{font-family:var(--serif);margin:0 0 4px;font-size:20px;color:var(--navy)}
+  .login .msub{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .login label{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 0 5px;font-weight:600}
+  .login input{width:100%;padding:10px 11px;font-size:15px}
+  .login .foot{margin-top:20px}.login .foot button{width:100%;padding:11px}
+  .login .erro{color:var(--danger);font-size:13px;margin-top:10px;min-height:18px}
+  .login .marca{display:flex;align-items:center;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line2)}
+  .login .marca .bb-logo{width:28px;height:28px;font-size:16px}
+  .login .marca span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
+
+  /* ===== FAIXA SUPERIOR ===== */
+  .topband{background:var(--navy);color:#fff;position:sticky;top:0;z-index:5}
+  .topband-in{max-width:var(--maxw);margin:0 auto;padding:18px var(--padx);display:flex;align-items:center;gap:20px}
+  .tb-eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);font-weight:600}
+  .tb-title{font-family:var(--serif);font-size:24px;letter-spacing:.02em;margin-top:3px;color:#fff}
+  .spacer{flex:1}
+  .tb-right{text-align:right;line-height:1.35}
+  .tb-right .co{font-family:var(--serif);font-size:15px;letter-spacing:.03em;color:#fff}
+  .tb-right .sub{font-size:11px;letter-spacing:.10em;text-transform:uppercase;color:#9fb4c7;margin-top:3px}
+  .tb-right .sub.atrasado{color:#ffb4a8}
+  .topband-rule{height:3px;background:var(--blue)}
+
+  /* ===== CONTEÚDO ===== */
+  .wrap{max-width:var(--maxw);margin:22px auto 0;padding:0 var(--padx);width:100%;flex:1;display:flex;flex-direction:column}
+  .toolbar{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+  .toolbar .title{font-family:var(--serif);font-size:19px;color:var(--navy)}
+  .toolbar .hint{font-size:12px;color:var(--muted);letter-spacing:.02em;margin-top:2px}
+  .opbox{text-align:right;line-height:1.3;min-width:0}
+  .op-nivel{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .op-linha{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:3px}
+  .op-nome{font-family:var(--serif);font-size:15px;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .op-sair{padding:5px 12px;font-size:12px;border-radius:6px}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;position:relative;overflow:hidden;
+        box-shadow:0 1px 2px rgba(13,36,56,.04)}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--blue)}
+
+  .filtros{padding:14px 18px 14px 22px;margin-bottom:16px}
+  .abas{display:flex;gap:6px;flex-wrap:wrap}
+  .abas button{padding:7px 12px;font-size:12px}
+  .abas button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .filtro{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line2)}
+  .filtro .campo label{display:block;margin-bottom:4px}
+  .filtro .spacer{min-width:0}
+
+  .status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin:0 0 16px 2px;min-height:18px}
+  .status .dot{width:7px;height:7px;border-radius:50%;background:var(--muted2);flex:none}
+  .status.ok .dot{background:var(--blue)}
+  .status.err{color:var(--danger)} .status.err .dot{background:var(--danger)}
+  .status.loading .dot{animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:18px}
+  .kpi{padding:14px 16px 14px 20px}
+  .kpi .k{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .kpi .v{font-family:var(--serif);font-size:22px;font-weight:700;color:var(--navy);margin-top:4px;
+          font-variant-numeric:tabular-nums;word-break:break-word}
+  .kpi.destaque{background:var(--navy);border-color:var(--navy)}
+  .kpi.destaque::before{background:var(--blue)}
+  .kpi.destaque .k{color:#9fb4c7}.kpi.destaque .v{color:#fff}
+
+  .painel{margin-bottom:18px}
+  .painel-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:14px 18px 12px 22px;border-bottom:1px solid var(--line2)}
+  .painel-head .t{font-family:var(--serif);font-size:17px;color:var(--navy)}
+  .painel-body{padding:16px 18px 14px 22px}
+
+  .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .bar-row:last-child{margin-bottom:0}
+  .bar-label{font-size:13px;color:var(--navy);width:150px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-track{flex:1;height:8px;background:var(--blue-soft);border-radius:4px;overflow:hidden}
+  .bar-fill{height:100%;background:var(--blue);border-radius:4px;width:0;transition:width .8s cubic-bezier(.4,0,.2,1)}
+  .bar-row:first-child .bar-fill{background:var(--navy)}
+  .bar-val{font-family:var(--mono);font-size:12px;color:var(--navy);width:110px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
+
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 18px 6px 22px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line2);white-space:nowrap}
+  th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  td{color:var(--navy)}
+  th.r,td.r{text-align:right}
+  td.r{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+  td.total{font-weight:700;color:var(--blue)}
+  .vendor-cell{display:flex;align-items:center;gap:10px}
+  .vendor-badge{width:26px;height:26px;background:var(--navy);color:#fff;font-family:var(--serif);font-weight:700;
+                font-size:13px;display:flex;align-items:center;justify-content:center;flex:none;border-radius:4px}
+  tr.tot-linha td{border-top:2px solid var(--navy);border-bottom:none;font-weight:700;color:var(--navy)}
+  tr.tot-linha td:first-child{font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+
+  .empty{text-align:center;color:var(--muted);padding:36px 20px;font-size:14px}
+  .actions{display:flex;align-items:center;justify-content:flex-end;margin-top:auto;padding:6px 0 16px}
+  .relogio{font-family:var(--mono);font-size:12px;color:var(--muted2);letter-spacing:.02em}
+
+  /* ===== FAIXA INFERIOR ===== */
+  .botband{border-top:1px solid var(--line);background:var(--surface);margin-top:10px}
+  .botband-in{max-width:var(--maxw);margin:0 auto;padding:0 var(--padx);display:flex;align-items:center;gap:16px;min-height:15mm}
+  .bb-logo{width:40px;height:40px;background:var(--navy);color:#fff;font-family:var(--serif);font-weight:700;
+           font-size:22px;display:flex;align-items:center;justify-content:center;flex:none}
+  .bb-name{font-family:var(--serif);font-size:19px;font-weight:700;color:var(--navy);letter-spacing:.06em;line-height:1.1}
+  .bb-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+  .bb-info{text-align:right;line-height:1.3}
+  .bb-info .bb-loc{font-family:var(--serif);color:var(--navy);letter-spacing:.06em;font-size:13px}
+  .bb-info .bb-co{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
+  .bb-info .bb-contact{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+
+  @media(max-width:640px){
+    :root{--padx:14px}
+    .topband-in{padding:12px var(--padx);gap:12px}
+    .tb-eyebrow{font-size:10px;letter-spacing:.18em}
+    .tb-title{font-size:19px}
+    .tb-right .co{font-size:14px}
+    .tb-right .sub{font-size:10px;letter-spacing:.06em}
+    .wrap{margin-top:16px}
+    .toolbar .hint{display:none}
+    .toolbar .title{font-size:17px}
+    .op-nome{max-width:150px}
+    .painel-head{flex-direction:column;align-items:flex-start;gap:4px}
+    .filtros{padding:12px 12px 12px 16px}
+    .filtro .campo{flex:1;min-width:130px}
+    .filtro .campo input,.filtro .campo select{width:100%}
+    .filtro .spacer{display:none}
+    .filtro button.primary{width:100%}
+    .kpis{grid-template-columns:repeat(2,1fr);gap:10px}
+    .kpi{padding:12px 12px 12px 16px}
+    .kpi .v{font-size:18px}
+    .painel-head,.painel-body{padding-left:16px;padding-right:12px}
+    .table-scroll{padding:0 12px 6px 16px}
+    .bar-label{width:92px;font-size:12px}
+    .bar-val{width:96px;font-size:11px}
+    .botband-in{min-height:0;padding:12px var(--padx);flex-wrap:wrap}
+    .bb-info{text-align:left}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== CARREGANDO / ERRO ===== -->
+<div class="login-bg" id="telaInicio">
+  <div class="login">
+    <h2>Dashboard de Vendas</h2>
+    <div class="msub" id="inicioMsg">Carregando...</div>
+    <div class="erro" id="inicioErro"></div>
+  </div>
+</div>
+
+<!-- ===== LOGIN ===== -->
+<div class="login-bg" id="telaLogin" hidden>
+  <form class="login" id="formLogin">
+    <h2>Dashboard de Vendas</h2>
+    <div class="msub">Identifique-se para acessar</div>
+    <label for="email">E-mail</label>
+    <input type="email" id="email" autocomplete="username" required>
+    <label for="senha">Senha</label>
+    <input type="password" id="senha" autocomplete="current-password" placeholder="••••" required>
+    <div class="erro" id="loginErro"></div>
+    <div class="foot"><button class="primary" type="submit" id="btnEntrar">Entrar</button></div>
+    <div class="marca"><div class="bb-logo">P</div><span>Progresso Soluções Empresariais</span></div>
+  </form>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app" hidden style="display:flex;flex-direction:column;min-height:100vh">
+  <div class="topband">
+    <div class="topband-in">
+      <div>
+        <div class="tb-eyebrow">Sistema Control</div>
+        <div class="tb-title">Dashboard de Vendas</div>
+      </div>
+      <span class="spacer"></span>
+      <div class="tb-right">
+        <div class="co" id="empresaCliente">—</div>
+        <div class="sub" id="syncInfo">&nbsp;</div>
+      </div>
+    </div>
+    <div class="topband-rule"></div>
+  </div>
+
+  <div class="wrap">
+    <div class="toolbar">
+      <div>
+        <div class="title">Vendas por Vendedor</div>
+        <div class="hint">Dados enviados automaticamente pelo computador da loja</div>
+      </div>
+      <span class="spacer"></span>
+      <div class="opbox">
+        <div class="op-nivel">Usuário</div>
+        <div class="op-linha"><span class="op-nome" id="usuarioNome"></span>
+          <button class="op-sair" id="btnSair">Sair</button></div>
+      </div>
+    </div>
+
+    <div class="card filtros">
+      <div class="abas" id="chips">
+        <button data-periodo="hoje">Hoje</button>
+        <button data-periodo="ontem">Ontem</button>
+        <button data-periodo="7dias">7 dias</button>
+        <button data-periodo="mes">Este mês</button>
+        <button data-periodo="mesAnterior">Mês anterior</button>
+      </div>
+      <div class="filtro">
+        <div class="campo" id="filtroEmpresa" hidden>
+          <label class="lbl" for="selEmpresa">Loja</label>
+          <select id="selEmpresa"></select>
+        </div>
+        <div class="campo">
+          <label class="lbl" for="dtInicial">De</label>
+          <input type="date" id="dtInicial">
+        </div>
+        <div class="campo">
+          <label class="lbl" for="dtFinal">Até</label>
+          <input type="date" id="dtFinal">
+        </div>
+        <span class="spacer"></span>
+        <button class="primary" id="btnAtualizar">↻ Atualizar</button>
+      </div>
+    </div>
+
+    <div class="status loading" id="statusBar"><span class="dot"></span><span id="statusMsg">Carregando dados...</span></div>
+
+    <div class="kpis">
+      <div class="card kpi destaque"><div class="k">Total Geral</div><div class="v" id="kpiTotal">—</div></div>
+      <div class="card kpi"><div class="k">À Vista</div><div class="v" id="kpiVista">—</div></div>
+      <div class="card kpi"><div class="k">A Prazo</div><div class="v" id="kpiPrazo">—</div></div>
+      <div class="card kpi"><div class="k">Notas Emitidas</div><div class="v" id="kpiNotas">—</div></div>
+      <div class="card kpi"><div class="k">Ticket Médio</div><div class="v" id="kpiTicket">—</div></div>
+      <div class="card kpi"><div class="k">Descontos</div><div class="v" id="kpiDesconto">—</div></div>
+    </div>
+
+    <div class="card painel">
+      <div class="painel-head">
+        <div class="t">Participação por vendedor</div>
+        <div class="lbl" id="chartPeriod">—</div>
+      </div>
+      <div class="painel-body" id="chartArea"><div class="empty">Carregando...</div></div>
+    </div>
+
+    <div class="card painel">
+      <div class="painel-head">
+        <div class="t">Detalhamento por vendedor</div>
+        <div class="lbl" id="tablePeriod">—</div>
+      </div>
+      <div id="tableArea"><div class="empty">Carregando...</div></div>
+    </div>
+
+    <div class="actions"><span class="relogio" id="footerTs">—</span></div>
+  </div>
+
+  <footer class="botband">
+    <div class="botband-in">
+      <div class="bb-logo">P</div>
+      <div>
+        <div class="bb-name">PROGRESSO</div>
+        <div class="bb-tag">Gestão · Consultoria · Contabilidade</div>
+      </div>
+      <span class="spacer"></span>
+      <div class="bb-info">
+        <div class="bb-loc">Floriano – Piauí</div>
+        <div class="bb-co">Progresso Soluções Empresariais Ltda</div>
+        <div class="bb-contact">CNPJ 37.370.609/0001-62 · (89) 9467-5973 · contadorjuniorholanda@gmail.com</div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script>
+// Se algo falhar antes do login aparecer, mostra o motivo em vez de uma tela branca
+function falhaInicio(msg) {
+  const tela = document.getElementById('telaInicio');
+  if (!tela || tela.hidden) return;
+  document.getElementById('inicioMsg').textContent = 'Não foi possível carregar';
+  document.getElementById('inicioErro').textContent = msg;
+}
+window.addEventListener('error', ev => falhaInicio(ev.message || 'Erro ao carregar a página.'));
+</script>
+<script>
+// ── Configuração (a mesma para todos os clientes) ──────────────
+const SUPABASE_URL = "https://fqthhmtqmdusvffvkjps.supabase.co";
+const SUPABASE_KEY = "sb_publishable__NHdsKVqvtDr0GfRoeCJLA_spmqi4m5";
+
+const ATUALIZAR_A_CADA_MS = 5 * 60 * 1000;   // recarrega sozinho com a tela aberta
+const SYNC_ATRASADA_MIN   = 60;              // avisa se o PC da loja parou de enviar
+
+if (typeof supabase === 'undefined') {
+  falhaInicio('Sem conexão com a internet (biblioteca do Supabase não carregou).');
+  throw new Error('supabase-js não carregou');
+}
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+
+let empresas = [];
+let ultimaCarga = 0;
+let seqCarga = 0;
+
+// ── Utilitários ────────────────────────────────────────────────
+function iso(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function fmtDate(s) { return s ? s.split('-').reverse().join('/') : '—'; }
+function fmt(v) {
+  return 'R$ ' + Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function soma(dados, campo) { return dados.reduce((a,r) => a + Number(r[campo]||0), 0); }
+function setStatus(type, msg) {
+  $('statusBar').className = 'status ' + type;
+  $('statusMsg').textContent = msg;
+}
+function lembrar(chave, valor) {
+  try { localStorage.setItem(chave, valor); } catch (e) {}
+}
+function recuperar(chave) {
+  try { return localStorage.getItem(chave); } catch (e) { return null; }
+}
+function tempoDesde(ts) {
+  if (!ts) return null;
+  const min = Math.round((Date.now() - new Date(ts)) / 60000);
+  if (min < 1) return 'agora mesmo';
+  if (min < 60) return `há ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 48) return `há ${h} h`;
+  return `há ${Math.floor(h / 24)} dias`;
+}
+
+// ── Períodos rápidos ───────────────────────────────────────────
+function aplicarPeriodo(nome) {
+  const hoje = new Date();
+  let ini = new Date(hoje), fim = new Date(hoje);
+  if (nome === 'ontem')       { ini.setDate(hoje.getDate()-1); fim = new Date(ini); }
+  if (nome === '7dias')       { ini.setDate(hoje.getDate()-6); }
+  if (nome === 'mes')         { ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1); }
+  if (nome === 'mesAnterior') { ini = new Date(hoje.getFullYear(), hoje.getMonth()-1, 1);
+                                fim = new Date(hoje.getFullYear(), hoje.getMonth(), 0); }
+  $('dtInicial').value = iso(ini);
+  $('dtFinal').value   = iso(fim);
+  marcarChip(nome);
+}
+function marcarChip(nome) {
+  document.querySelectorAll('#chips button').forEach(c => c.classList.toggle('on', c.dataset.periodo === nome));
+}
+
+// ── Login ──────────────────────────────────────────────────────
+function mostrarLogin() {
+  $('telaInicio').hidden = true;
+  $('app').hidden = true;
+  $('telaLogin').hidden = false;
+  $('email').focus();
+}
+
+$('formLogin').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  $('btnEntrar').disabled = true;
+  $('loginErro').textContent = '';
+  const { error } = await sb.auth.signInWithPassword({
+    email: $('email').value.trim(), password: $('senha').value
+  });
+  $('btnEntrar').disabled = false;
+  if (error) {
+    $('loginErro').textContent = error.message.includes('Invalid login')
+      ? 'E-mail ou senha incorretos.' : 'Não foi possível entrar: ' + error.message;
+    return;
+  }
+  $('senha').value = '';
+  abrirApp();
+});
+
+$('btnSair').addEventListener('click', () => sb.auth.signOut());
+sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') mostrarLogin(); });
+
+// ── Dashboard ──────────────────────────────────────────────────
+async function buscarEmpresas() {
+  const { data, error } = await sb.from('empresas').select('id, nome, ultima_sync').order('nome');
+  if (error) throw error;
+  return data;
+}
+
+async function abrirApp() {
+  $('telaInicio').hidden = true;
+  $('telaLogin').hidden = true;
+  $('app').hidden = false;
+  setStatus('loading', 'Carregando lojas...');
+
+  const { data: { user } } = await sb.auth.getUser();
+  $('usuarioNome').textContent = user?.email || '';
+
+  try {
+    empresas = await buscarEmpresas();
+  } catch (e) {
+    setStatus('err', 'Erro ao carregar lojas: ' + e.message);
+    return;
+  }
+  if (!empresas.length) {
+    setStatus('err', 'Este login ainda não está vinculado a nenhuma loja.');
+    $('tableArea').innerHTML = $('chartArea').innerHTML = '<div class="empty">Sem acesso.</div>';
+    return;
+  }
+
+  $('selEmpresa').innerHTML = empresas.map(e => `<option value="${e.id}">${esc(e.nome)}</option>`).join('');
+  const salva = recuperar('empresa');
+  if (empresas.some(e => e.id === salva)) $('selEmpresa').value = salva;
+  $('filtroEmpresa').hidden = empresas.length < 2;
+
+  if (!$('dtInicial').value) aplicarPeriodo('mes');
+  carregar();
+}
+
+function empresaAtual() {
+  return empresas.find(e => e.id === $('selEmpresa').value) || empresas[0];
+}
+
+function mostrarSync(empresa) {
+  const quando = tempoDesde(empresa.ultima_sync);
+  const atrasada = !empresa.ultima_sync ||
+    (Date.now() - new Date(empresa.ultima_sync)) / 60000 > SYNC_ATRASADA_MIN;
+  $('syncInfo').className = 'sub' + (atrasada ? ' atrasado' : '');
+  $('syncInfo').textContent = !quando ? 'Aguardando primeiro envio' : `Sincronizado ${quando}`;
+  $('syncInfo').title = atrasada ? 'Verifique se o computador da loja está ligado e com internet.' : '';
+}
+
+async function carregar() {
+  const dtI = $('dtInicial').value;
+  const dtF = $('dtFinal').value;
+  if (!dtI || !dtF) { setStatus('err','Selecione o período.'); return; }
+  if (dtI > dtF)    { setStatus('err','A data inicial é maior que a final.'); return; }
+
+  const empresa = empresaAtual();
+  const minhaSeq = ++seqCarga;
+  $('empresaCliente').textContent = empresa.nome;
+  setStatus('loading','Buscando dados...');
+  $('btnAtualizar').disabled = true;
+
+  try {
+    const [resumo, lojas] = await Promise.all([
+      sb.rpc('resumo_vendedores', { p_inicio: dtI, p_fim: dtF, p_empresa: empresa.id }),
+      buscarEmpresas()
+    ]);
+    if (minhaSeq !== seqCarga) return;  // outra busca mais nova já foi disparada
+    if (resumo.error) throw resumo.error;
+
+    empresas = lojas;
+    const atual = empresaAtual();
+    mostrarSync(atual);
+
+    const dados = resumo.data;
+    const periodo = `${fmtDate(dtI)} a ${fmtDate(dtF)}`;
+    $('chartPeriod').textContent = $('tablePeriod').textContent = periodo;
+    ultimaCarga = Date.now();
+    $('footerTs').textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR');
+
+    renderKPIs(dados);
+    if (!dados.length) {
+      $('tableArea').innerHTML = '<div class="empty">Sem vendas no período.</div>';
+      $('chartArea').innerHTML = '<div class="empty">Sem dados.</div>';
+    } else {
+      renderGrafico(dados);
+      renderTabela(dados);
+    }
+    const aviso = $('syncInfo').classList.contains('atrasado')
+      ? ' · Atenção: o computador da loja não envia dados há mais de 1 hora' : '';
+    setStatus(aviso ? 'err' : 'ok',
+      (dados.length ? `${dados.length} vendedor(es) · ${soma(dados,'qtd_notas')} notas` : 'Nenhuma venda no período') + aviso);
+  } catch (e) {
+    if (minhaSeq !== seqCarga) return;
+    if (e.code === 'PGRST301' || /JWT/i.test(e.message || '')) { await sb.auth.signOut(); return; }
+    setStatus('err', 'Erro ao buscar dados: ' + (e.message || 'sem conexão'));
+  } finally {
+    if (minhaSeq === seqCarga) $('btnAtualizar').disabled = false;
+  }
+}
+
+function renderKPIs(dados) {
+  const total = soma(dados,'total');
+  const notas = soma(dados,'qtd_notas');
+  $('kpiTotal').textContent    = fmt(total);
+  $('kpiVista').textContent    = fmt(soma(dados,'total_vista'));
+  $('kpiPrazo').textContent    = fmt(soma(dados,'total_prazo'));
+  $('kpiNotas').textContent    = notas;
+  $('kpiTicket').textContent   = fmt(notas ? total / notas : 0);
+  $('kpiDesconto').textContent = fmt(soma(dados,'total_desconto'));
+}
+
+function renderGrafico(dados) {
+  const max = Math.max(...dados.map(r => Number(r.total)));
+  $('chartArea').innerHTML = dados.map(r => {
+    const pct = max > 0 ? (r.total / max * 100).toFixed(1) : 0;
+    return `<div class="bar-row">
+      <div class="bar-label">${esc(r.vendedor_nome || 'SEM VENDEDOR')}</div>
+      <div class="bar-track"><div class="bar-fill" data-pct="${pct}"></div></div>
+      <div class="bar-val">${fmt(r.total)}</div>
+    </div>`;
+  }).join('');
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.bar-fill').forEach(el => { el.style.width = el.dataset.pct + '%'; });
+  });
+}
+
+function renderTabela(dados) {
+  let html = `<div class="table-scroll"><table><thead><tr>
+    <th>Vendedor</th>
+    <th class="r">Notas</th>
+    <th class="r">Vista</th>
+    <th class="r">Prazo</th>
+    <th class="r">Acréscimo</th>
+    <th class="r">Frete</th>
+    <th class="r">Desconto</th>
+    <th class="r">Total</th>
+  </tr></thead><tbody>`;
+
+  dados.forEach(r => {
+    const nome = r.vendedor_nome || 'SEM VENDEDOR';
+    html += `<tr>
+      <td><div class="vendor-cell"><div class="vendor-badge">${esc(nome.charAt(0))}</div>${esc(nome)}</div></td>
+      <td class="r">${r.qtd_notas}</td>
+      <td class="r">${fmt(r.total_vista)}</td>
+      <td class="r">${fmt(r.total_prazo)}</td>
+      <td class="r">${fmt(r.total_acrescimo)}</td>
+      <td class="r">${fmt(r.total_frete)}</td>
+      <td class="r">${fmt(r.total_desconto)}</td>
+      <td class="r total">${fmt(r.total)}</td>
+    </tr>`;
+  });
+
+  html += `<tr class="tot-linha">
+    <td>Totais</td>
+    <td class="r">${soma(dados,'qtd_notas')}</td>
+    <td class="r">${fmt(soma(dados,'total_vista'))}</td>
+    <td class="r">${fmt(soma(dados,'total_prazo'))}</td>
+    <td class="r">${fmt(soma(dados,'total_acrescimo'))}</td>
+    <td class="r">${fmt(soma(dados,'total_frete'))}</td>
+    <td class="r">${fmt(soma(dados,'total_desconto'))}</td>
+    <td class="r">${fmt(soma(dados,'total'))}</td>
+  </tr></tbody></table></div>`;
+
+  $('tableArea').innerHTML = html;
+}
+
+// ── Eventos ────────────────────────────────────────────────────
+$('btnAtualizar').addEventListener('click', carregar);
+$('selEmpresa').addEventListener('change', () => { lembrar('empresa', $('selEmpresa').value); carregar(); });
+['dtInicial','dtFinal'].forEach(id => $(id).addEventListener('change', () => { marcarChip(null); carregar(); }));
+$('chips').addEventListener('click', ev => {
+  const chip = ev.target.closest('button');
+  if (!chip) return;
+  aplicarPeriodo(chip.dataset.periodo);
+  carregar();
+});
+
+// Mantém atualizado com a tela aberta e ao voltar para o app no celular
+setInterval(() => {
+  if (!$('app').hidden && document.visibilityState === 'visible') carregar();
+}, ATUALIZAR_A_CADA_MS);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !$('app').hidden && Date.now() - ultimaCarga > 60000) carregar();
+});
+
+// ── Início ─────────────────────────────────────────────────────
+sb.auth.getSession()
+  .then(({ data }) => data.session ? abrirApp() : mostrarLogin())
+  .catch(() => mostrarLogin());
+</script>
+</body>
+</html>
