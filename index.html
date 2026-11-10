@@ -28,14 +28,15 @@
        min-height:100vh;display:flex;flex-direction:column}
   .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
 
-  button{font-family:var(--sans);font-size:13px;cursor:pointer;border:1px solid var(--line);border-radius:7px;
-         padding:9px 15px;color:var(--navy);background:var(--surface);letter-spacing:.02em;font-weight:600}
+  button{font-family:var(--sans);font-size:13px;line-height:1.2;cursor:pointer;
+         border:1px solid var(--line);border-radius:7px;padding:0 15px;min-height:38px;
+         color:var(--navy);background:var(--surface);letter-spacing:.02em;font-weight:600}
   button:hover{border-color:var(--blue);color:var(--blue)}
   button:disabled{opacity:.5;cursor:not-allowed}
   button.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
   button.primary:hover{background:var(--navy2);color:#fff}
   input,select{font-family:var(--sans);font-size:14px;color:var(--txt);background:var(--surface);
-               border:1px solid var(--line);border-radius:7px;padding:8px 10px}
+               border:1px solid var(--line);border-radius:7px;padding:0 10px;min-height:38px}
   input:focus,select:focus{outline:none;border-color:var(--blue)}
 
   /* ===== LOGIN ===== */
@@ -73,7 +74,7 @@
   .op-nivel{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
   .op-linha{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:3px}
   .op-nome{font-family:var(--serif);font-size:15px;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .op-sair{padding:5px 12px;font-size:12px;border-radius:6px}
+  .op-sair{padding:0 12px;min-height:30px;font-size:12px;border-radius:6px}
 
   .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;position:relative;overflow:hidden;
         box-shadow:0 1px 2px rgba(13,36,56,.04)}
@@ -81,11 +82,12 @@
 
   .filtros{padding:14px 18px 14px 22px;margin-bottom:16px}
   .abas{display:flex;gap:6px;flex-wrap:wrap}
-  .abas button{padding:7px 12px;font-size:12px}
+  .abas button{padding:0 14px;min-height:34px;font-size:12px}
   .abas button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
   .filtro{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line2)}
   .filtro .campo label{display:block;margin-bottom:4px}
   .filtro .spacer{min-width:0}
+  .filtro .acoes{display:flex;gap:10px;align-items:flex-end}
 
   .status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin:0 0 16px 2px;min-height:18px}
   .status .dot{width:7px;height:7px;border-radius:50%;background:var(--muted2);flex:none}
@@ -158,10 +160,15 @@
     .op-nome{max-width:150px}
     .painel-head{flex-direction:column;align-items:flex-start;gap:4px}
     .filtros{padding:12px 12px 12px 16px}
-    .filtro .campo{flex:1;min-width:130px}
-    .filtro .campo input,.filtro .campo select{width:100%}
+    .abas{display:grid;grid-template-columns:repeat(3,1fr)}
+    .abas button{padding:0 6px}
+    .filtro{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+    .filtro .campo{min-width:0}
+    .filtro .campo input,.filtro .campo select{width:100%;font-size:13px;padding:0 8px}
+    .filtro #filtroEmpresa{grid-column:1 / -1}
     .filtro .spacer{display:none}
-    .filtro button{flex:1;min-width:120px}
+    .filtro .acoes{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .filtro .acoes button{width:100%;padding:0 8px}
     .kpis{grid-template-columns:repeat(2,1fr);gap:10px}
     .kpi{padding:12px 12px 12px 16px}
     .kpi .v{font-size:18px}
@@ -340,8 +347,10 @@
           <input type="date" id="dtFinal">
         </div>
         <span class="spacer"></span>
-        <button id="btnPdf">Exportar PDF</button>
-        <button class="primary" id="btnAtualizar">↻ Atualizar</button>
+        <div class="acoes">
+          <button id="btnPdf">Exportar PDF</button>
+          <button class="primary" id="btnAtualizar">↻ Atualizar</button>
+        </div>
       </div>
     </div>
 
